@@ -1,11 +1,14 @@
 import pandas as pd
-import MeanShifting as shift
+import MeanShifting as Shift
+import datetime
 
 
 def run():
+	now = datetime.datetime.now()
 	data = pd.read_csv("data.csv")
-	model = shift.MeanShifting(data)
-	model.train()
+	model = Shift.MeanShifting(data)
+	model.train(show_graphs=True)
+	print("Execution time: " + str(datetime.datetime.now() - now))
 
 
 if __name__ == "__main__":
