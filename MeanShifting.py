@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 class MeanShifting:
 	centroid_list = []
 	factor_list = []
+	init_centroid_num = 20
 
 	def __init__(self, data):
 		self.data = data
@@ -19,8 +20,8 @@ class MeanShifting:
 		temp_list2 = []
 
 		while True:
-			temp_list = np.array((self.factor_list * self.range / 20) + self.min).T
-			self.centroid_list.append(Centroid(temp_list[0], radius=1/20))
+			temp_list = np.array((self.factor_list * self.range / self.init_centroid_num) + self.min).T
+			self.centroid_list.append(Centroid(temp_list[0], radius=0.05))
 			points_list.append(temp_list.T)
 			temp_list2.append(self.factor_list)
 			if self.next_list() == -1:
@@ -32,35 +33,47 @@ class MeanShifting:
 			plt.show()
 
 		for i in range(200):
-			self.step()
-			print("iteration " + str(i) + "/" + str(199))
-		print("centroid count: " + str(len(self.centroid_list)))
+			print("iteration {0}/{1}".format(i, 199))
+			i += 1
+			if self.step() == 0:
+				print("Convergence reached!")
+				break
+		print("centroid count: {0}".format(len(self.centroid_list)))
 
 		if len(self.factor_list) == 2 and show_graphs:
 			cent = pd.DataFrame([[i.position[0], i.position[1]] for i in self.centroid_list], columns=list('xy'))
-			plt.scatter(cent['x'], cent['y'], s=20)
+			plt.scatter(cent['x'], cent['y'], s=20, zorder=2)
 			plt.scatter(self.data['x'], self.data['y'], c='r', s=2)
 			plt.show()
 
 	def step(self):
 		updated_centroids = []
+		distance = 0
 		for i in self.centroid_list:
-			self.update_centroid(i)
+			distance += self.update_centroid(i)
 			append = True
 			for j in updated_centroids:
-				if self.get_distance(i.position, j.position, n=2) < 0.3:
+				if get_distance(i.position, j.position, n=2) < 0.1 or not i.append:
 					# if j.position[0] == i.position[0] or j.position[1] == i.position[1]:
 					append = False
+					break
 			if append:
 				updated_centroids.append(i)
 		self.centroid_list = updated_centroids
+		return distance
 
 	def update_centroid(self, c):
-		in_range_x = self.data[c.position[0] - c.radius < self.data['x']]
-		in_range_x = in_range_x[c.position[0] + c.radius > in_range_x['x']]['x']
-		in_range_y = self.data[c.position[1] - c.radius < self.data['y']]
-		in_range_y = in_range_y[c.position[1] + c.radius > in_range_y['y']]['y']
-		c.update_position([in_range_x.mean(), in_range_y.mean()])
+		in_range = self.data[c.position[0] - c.radius < self.data['x']]
+		in_range = in_range[c.position[0] + c.radius > in_range['x']]
+		in_range = in_range[c.position[1] - c.radius < in_range['y']]
+		in_range = in_range[c.position[1] + c.radius > in_range['y']]
+		res = c.update_position([in_range['x'].mean(), in_range['y'].mean()])
+		in_range = self.data[c.position[0] - c.radius < self.data['x']]
+		in_range = in_range[c.position[0] + c.radius > in_range['x']]
+		in_range = in_range[c.position[1] - c.radius < in_range['y']]
+		in_range = in_range[c.position[1] + c.radius > in_range['y']]
+		c.append = len(in_range) > 40
+		return res
 
 	def next_list(self):
 		max_i = len(self.factor_list) - 1
@@ -72,24 +85,29 @@ class MeanShifting:
 		if self.factor_list[max_i] == 0:
 			return -1
 
-	@staticmethod
-	def get_distance(p, q, n=8):
-		diff = (np.abs(p - q) ** n).T
-		try:
-			diff.columns = [0]
-			suma = np.sum(diff)
-			result = suma[0] ** (1 / n)
-		except AttributeError:
-			result = np.sum(diff) ** (1 / n)
-		return result
+
+def get_distance(p, q, n=8):
+	diff = (np.abs(p - q) ** n).T
+	try:
+		diff.columns = [0]
+		suma = np.sum(diff)
+		result = suma[0] ** (1 / n)
+	except AttributeError:
+		result = np.sum(diff) ** (1 / n)
+	return result
 
 
 class Centroid:
+	append = True
+
 	def __init__(self, position, radius):
 		self.position = position
 		self.radius = radius
 
 	def update_position(self, mean_vector):
+		distance = 0
 		for i in range(len(mean_vector)):
+			distance += get_distance(self.position[i], mean_vector[i])
 			self.position[i] = mean_vector[i]
+		return distance
 
