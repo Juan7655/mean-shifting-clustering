@@ -1,1 +1,1 @@
-# mean-shifting-clustering
+# Mean-Shifting Clustering Algorithm

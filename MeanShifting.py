@@ -19,7 +19,10 @@ class MeanShifting:
 			self.centroid_list.append(Centroid(temp_list, radius=(1/400) * self.init_centroid_num))
 			if self.next_list() == -1:  # the cycle has returned to initial point
 				break  # reached maximum number of initial clusters. Stop.
-		self.draw_graph(show_graphs)  # show initial matrix of centroids with raw unclassified dataset
+
+		cent = pd.DataFrame([[i.position[j] for j in range(len(i.position))] for i in self.centroid_list])
+		self.draw_graph(self.data, show_graphs, plot=False)  # show initial matrix of centroids with raw unclassified dataset
+		self.draw_graph(cent[[cent.columns[0], cent.columns[1]]], show_graphs, s=20)
 
 		for i in range(max_iter):  # step until maximum iterations number is reached, or convergence state
 			print("iteration {0}/{1}".format(i, max_iter))
@@ -27,18 +30,42 @@ class MeanShifting:
 				print("Convergence reached!")
 				break
 		print("centroid count: {0}".format(len(self.centroid_list)))
+		cent = pd.DataFrame([[i.position[j] for j in range(len(i.position))] for i in self.centroid_list])
+		self.draw_graph(self.data, show_graphs, plot=False)  # show final graph with centroids positions
+		self.draw_graph(cent[[cent.columns[0], cent.columns[1]]], show_graphs, s=20)
 
-		self.draw_graph(show_graphs)  # show final graph with centroids positions
+		results = self.clasiffy()
+		for i in range(len(self.centroid_list)):
+			points_list = results[results['cluster'] == i]['point']
+			lel = [[i[0], i[1]] for i in points_list]
+			self.draw_graph(pd.DataFrame([[i[0], i[1]] for i in points_list]), show_graphs, plot=i == len(self.centroid_list) - 1)
 
-	def draw_graph(self, show_graph=False):
-		if len(self.data.columns) == 2 and show_graph:  # do not attempt to plot if dataset is not 2-Dimensional
-			cent = pd.DataFrame([[i.position[j] for j in range(len(i.position))] for i in self.centroid_list])
+	def clasiffy(self):
+		classified_data = []
+
+		for i in self.data.iterrows():
+			nearest_centroid_index = 0
+			vector_point = np.array([k for k in i[1]])
+			distance = get_distance(vector_point, self.centroid_list[0].position)
+
+			for j in range(1, len(self.centroid_list)):
+				m_dist = get_distance(np.array([k for k in i[1]]), self.centroid_list[j].position)
+				if m_dist < distance:
+					distance = m_dist
+					nearest_centroid_index = j
+			classified_data.append([i[1], nearest_centroid_index])
+		classified_data = pd.DataFrame(classified_data, columns=["point", "cluster"])
+		return classified_data
+
+	def draw_graph(self, data, show_graph=False, plot=True, s=2):
+		if len(data.columns) == 2 and show_graph:  # do not attempt to plot if dataset is not 2-Dimensional
+
 			# it may be assumed that there are only 2 dimensions
-			plt.scatter(cent[cent.columns[0]], cent[cent.columns[1]], s=20, zorder=2)
-			plt.scatter(self.data[self.data.columns[0]], self.data[self.data.columns[1]], c='r', s=2)
-			plt.xlabel(self.data.columns[0])
-			plt.ylabel(self.data.columns[1])
-			plt.show()
+			plt.scatter(data[data.columns[0]], data[data.columns[1]], s=s)
+			plt.xlabel(data.columns[0])
+			plt.ylabel(data.columns[1])
+			if plot:
+				plt.show()
 
 	def step(self):
 		updated_centroids = []
