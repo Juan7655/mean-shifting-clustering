@@ -7,11 +7,13 @@ import datetime
 def run():
 	now = datetime.datetime.now()
 	data = pd.read_csv("data2.csv")
-	data.columns = list('xy')
-	data['x'] = (np.array(data['x']) - data['x'].min()) / (data['x'].max() - data['x'].min())
-	data['y'] = (np.array(data['y']) - data['y'].min()) / (data['y'].max() - data['y'].min())
+
+	# data normalization
+	for i in data.columns:
+		data[i] = (np.array(data[i]) - data[i].min()) / (data[i].max() - data[i].min())
+
 	model = Shift.MeanShifting(data)
-	model.train(show_graphs=True)
+	model.train(max_iter=200, show_graphs=True)
 	print("Execution time: {0}".format(datetime.datetime.now() - now))
 
 
