@@ -32,7 +32,8 @@ class MeanShifting:
 			plt.scatter(self.data[self.data.columns[0]], self.data[self.data.columns[1]], c='r', s=1)
 			plt.show()
 
-		for i in range(200):
+		i = 0
+		while True and i < 1000:
 			print("iteration {0}/{1}".format(i, 199))
 			i += 1
 			if self.step() == 0:
@@ -51,10 +52,9 @@ class MeanShifting:
 		distance = 0
 		for i in self.centroid_list:
 			distance += self.update_centroid(i)
-			append = True
+			append = not np.isnan(i.position).any()
 			for j in updated_centroids:
 				if get_distance(i.position, j.position, n=2) < 0.1 or not i.append:
-					# if j.position[0] == i.position[0] or j.position[1] == i.position[1]:
 					append = False
 					break
 			if append:
@@ -63,15 +63,12 @@ class MeanShifting:
 		return distance
 
 	def update_centroid(self, c):
-		in_range = self.data[c.position[0] - c.radius < self.data['x']]
-		in_range = in_range[c.position[0] + c.radius > in_range['x']]
-		in_range = in_range[c.position[1] - c.radius < in_range['y']]
-		in_range = in_range[c.position[1] + c.radius > in_range['y']]
+		in_range = self.data[(c.position[0] - c.radius < self.data['x']) & (c.position[0] + c.radius > self.data['x'])]
+		in_range = in_range[(c.position[1] - c.radius < in_range['y']) & (c.position[1] + c.radius > in_range['y'])]
 		res = c.update_position([in_range['x'].mean(), in_range['y'].mean()])
-		in_range = self.data[c.position[0] - c.radius < self.data['x']]
-		in_range = in_range[c.position[0] + c.radius > in_range['x']]
-		in_range = in_range[c.position[1] - c.radius < in_range['y']]
-		in_range = in_range[c.position[1] + c.radius > in_range['y']]
+
+		in_range = self.data[(c.position[0] - c.radius < self.data['x']) & (c.position[0] + c.radius > self.data['x'])]
+		in_range = in_range[(c.position[1] - c.radius < in_range['y']) & (c.position[1] + c.radius > in_range['y'])]
 		c.append = len(in_range) > 40
 		return res
 
@@ -86,7 +83,7 @@ class MeanShifting:
 			return -1
 
 
-def get_distance(p, q, n=8):
+def get_distance(p, q, n=2):
 	diff = (np.abs(p - q) ** n).T
 	try:
 		diff.columns = [0]
@@ -110,4 +107,3 @@ class Centroid:
 			distance += get_distance(self.position[i], mean_vector[i])
 			self.position[i] = mean_vector[i]
 		return distance
-
