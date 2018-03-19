@@ -6,7 +6,8 @@ import datetime
 
 def run():
 	now = datetime.datetime.now()
-	data = pd.read_csv("data2.csv")
+	data = pd.read_csv("data3.csv")
+	# data = pd.read_csv("results4-feat.csv")
 
 	# data normalization
 	for i in data.columns:

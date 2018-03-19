@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 
 class MeanShifting:
-	centroid_list, factor_list, init_centroid_num = [], [], 20
+	centroid_list, factor_list, init_centroid_num = [], [], 150
+	centroid_radius = 1/900
 
 	def __init__(self, data):
 		self.data = data
@@ -16,7 +17,7 @@ class MeanShifting:
 	def train(self, max_iter=1000, show_graphs=True):
 		while True:  # creates initial uniform matrix on centroids
 			temp_list = np.array((self.factor_list * self.range / self.init_centroid_num) + self.min).T[0]
-			self.centroid_list.append(Centroid(temp_list, radius=(1/400) * self.init_centroid_num))
+			self.centroid_list.append(Centroid(temp_list, radius=self.centroid_radius * self.init_centroid_num))
 			if self.next_list() == -1:  # the cycle has returned to initial point
 				break  # reached maximum number of initial clusters. Stop.
 
@@ -37,7 +38,6 @@ class MeanShifting:
 		results = self.clasiffy()
 		for i in range(len(self.centroid_list)):
 			points_list = results[results['cluster'] == i]['point']
-			lel = [[i[0], i[1]] for i in points_list]
 			self.draw_graph(pd.DataFrame([[i[0], i[1]] for i in points_list]), show_graphs, plot=i == len(self.centroid_list) - 1)
 
 	def clasiffy(self):
@@ -93,8 +93,8 @@ class MeanShifting:
 		for i in range(len(self.data.columns)):
 			in_range = in_range[(c.position[i] - c.radius < in_range[in_range.columns[i]]) &
 			                    (c.position[i] + c.radius > in_range[in_range.columns[i]])]
-		c.append = len(in_range) > 40
-		return res
+		c.append = len(in_range) > 20
+		return res if not np.isnan(res) else 0
 
 	def next_list(self):
 		max_i = len(self.factor_list) - 1
